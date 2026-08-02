@@ -154,7 +154,7 @@ int signIn(struct User *loggedInUser)
     while (attempts > 0)
     {
         printf("Enter password: ");
-        scanf("%49s", password);
+        scanf("%49s", password);    
 
         if (strcmp(temp.password, password) == 0)
         {
@@ -235,11 +235,8 @@ int updateUserInFile(struct User *user)
     return 0;
 }
 
-// ---------------- ADD MONEY ----------------
-// Rakib er original code ke fix kore integrate kora hoise:
-// 1) scanf e leading space add kora hoise (leftover newline skip korar jonno)
-// 2) width limit (%11) add kora hoise (buffer overflow thekano)
-// 3) balance actual update kora hoise + file e save kora hoise
+// ---------------- ADD MONEY -> Rakib ----------------
+
 void addMoney(struct User *user)
 {
     char agentNum[12];
