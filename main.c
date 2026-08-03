@@ -5,57 +5,48 @@
 
 #define FILENAME "users.dat"
 
-// ---------------- CROSS PLATFORM CLEAR SCREEN ----------------
-#ifdef _WIN32
-#define CLEAR_SCREEN() system("cls")
-#else
-#define CLEAR_SCREEN() system("clear")
-#endif
-
-struct User
-{
+// ---------------- DATA STRUCTURE ----------------
+struct User {
     char username[50];
     char password[50];
     double balance; // <-- NEW: initial balance field
 };
 
-// ---------------- VALIDATE PHONE NUMBER ----------------
-// Rules: must be exactly 11 characters, all digits,
-// and first 3 digits must be one of: 013,014,015,016,018,019
+// ---------------- CLEAR SCREEN AND HEADER ----------------
+
+void CLEAR_SCREEN() {
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+
+    //printf("\n");
+    //printf(" +===================================================================+\n");
+    //printf(" |                   P O C K E T F L O W                             |\n");
+    //printf(" |          Next-Gen Digital Wallet & Finance                        |\n");
+    //printf(" +===================================================================+\n\n");
+}
+
+// ---------------- VALIDATE PHONE NUMBER (BD , 11 DIGITS, 013-019) ----------------
+
 int validatePhoneNumber(char number[])
 {
-    char validPrefixes[6][4] = {"013", "014", "015", "016", "018", "019"};
-    int i, matched = 0;
+    int i;
 
-    if (strlen(number) != 11)
-    {
+    if (strlen(number) != 11) {
         printf("Invalid! Number must be exactly 11 digits.\n");
         return 0;
     }
 
-    for (i = 0; i < 11; i++)
-    {
-        if (number[i] < '0' || number[i] > '9')
-        {
+    for (i = 0; i < 11; i++) {
+        if (number[i] < '0' || number[i] > '9') {
             printf("Invalid! Number must contain digits only.\n");
             return 0;
         }
     }
 
-    char prefix[4];
-    strncpy(prefix, number, 3);
-    prefix[3] = '\0';
-
-    for (i = 0; i < 6; i++)
-    {
-        if (strcmp(prefix, validPrefixes[i]) == 0)
-        {
-            matched = 1;
-            break;
-        }
-    }
-
-    if (!matched)
+    if(number[2] < '3' || number[2] > '9' || number[0] != '0' || number[1] !='1' )
     {
         printf("Invalid! Number must start with 013/014/015/016/018/019.\n");
         return 0;
@@ -68,8 +59,11 @@ int validatePhoneNumber(char number[])
 void signUp()
 {
     struct User newUser;
-    FILE *fp;
 
+    newUser.balance = 0.00; // <-- every new account starts with 0.00
+
+
+    // Beautiful header
     printf("\n--- SIGN UP ---\n");
 
     do
@@ -81,10 +75,9 @@ void signUp()
     printf("Enter password: ");
     scanf("%49s", newUser.password);
 
-    newUser.balance = 0.00; // <-- every new account starts with 0.00
-
+    
     // check if username already exists
-    fp = fopen(FILENAME, "rb");
+    FILE *fp = fopen(FILENAME, "rb");
     if (fp != NULL)
     {
         struct User temp;
