@@ -636,7 +636,6 @@ void showNotifications(struct User *currentUser) {
             fseek(cfp, recordPosition, SEEK_SET);
             fwrite(&claim, sizeof(struct Claim), 1, cfp);
             
-            currentUser->balance += claim.amount;
             break;
         }
     }
