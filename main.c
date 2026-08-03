@@ -154,7 +154,7 @@ int signIn(struct User *loggedInUser)
     while (attempts > 0)
     {
         printf("Enter password: ");
-        scanf("%49s", password);    
+        scanf("%49s", password);
 
         if (strcmp(temp.password, password) == 0)
         {
@@ -273,7 +273,90 @@ void addMoney(struct User *user)
         printf("Something went wrong. Balance not updated.\n");
     }
 }
+// feature/CASHOUT//
+void cashOut(struct User *user)
+{
+    char agentNum[12];
+    char password[50];
+    double amount, charge, total;
+    int attempts = 3;
+    double CASH_OUT_RATE = 0.015;   // 1.5% cash out charge
 
+    // ---------------- Screen 1: Number + Amount ----------------
+    showOptionHeader();
+    printf("><><><><><<< C A S H   O U T >>><><><><><\n");
+
+    do
+    {
+        printf("Enter Number: ");
+        scanf(" %11[^\n]", agentNum);   // shuru te space -- leftover \n skip korbe
+    } while (!validatePhoneNumber(agentNum));
+
+    printf("Enter Amount to cash out: ");
+    scanf("%lf", &amount);
+
+    if (amount <= 0)
+    {
+        printf("Your amount is too low. Try again.\n");
+        return;
+    }
+
+    charge = amount * CASH_OUT_RATE;
+    total = amount + charge;
+
+    if (total > user->balance)
+    {
+        printf("Insufficient Balance! You need %.2f Taka but you have %.2f Taka.\n",
+               total, user->balance);
+        return;
+    }
+
+    // ---------------- Screen 2: Amount after charge ----------------
+    showOptionHeader();
+    printf("><><><><><<< C A S H   O U T >>><><><><><\n\n");
+    printf("Amount after adding cash out charge: %.2f\n", total);
+    printf("Enter to Continue...");
+    getchar();   // leftover \n from scanf("%lf", ...) clear kore
+    getchar();   // asol Enter key press er jonno wait kore
+
+    // ---------------- Screen 3: PIN/Password check ----------------
+    showOptionHeader(); 
+    printf("><><><><><<< C A S H   O U T >>><><><><><\n\n");
+    while (attempts > 0)
+    {
+       
+        printf("Enter your PIN: ");
+        scanf("%49s", password);
+
+        // Check if pin matches with the pin the owner enter to login
+        if (strcmp(password, user->password) == 0)
+        {
+            user->balance -= total;
+
+            if (updateUserInFile(user))
+            {
+                // ---------------- Screen 4: Success ----------------
+                showOptionHeader();
+                printf("Your Cash out is successfully cash out %.2f and your current balance (%.2f)!!!\n",
+                       amount, user->balance);
+            }
+            else
+            {
+                user->balance += total;   // file update fail korle rollback
+                printf("Something went wrong. Balance not updated.\n");
+            }
+            return;
+        }
+        else
+        {
+            attempts--;
+            if (attempts > 0)
+                printf("Wrong PIN! %d attempt(s) left. Try again.\n", attempts);
+            else
+                printf("Wrong PIN! No attempts left. Cash Out cancelled.\n");
+        }
+    }
+}
 // ---------------- DASHBOARD ----------------
 // user pointer -- karon balance update hole (Add Money etc.) shei change
 // dashboard e ferot ashle updated dekhate hobe
@@ -305,7 +388,7 @@ void dashboard(struct User *user)
 
         case 2:
             showOptionHeader();
-            printf("--- Cash Out (friend's work here) ---\n");
+            cashOut(user);
             printf("\nPress Enter to return to dashboard...");
             getchar();
             getchar();
