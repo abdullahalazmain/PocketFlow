@@ -661,7 +661,7 @@ void dashboard(struct User *user) {
         printf("3. Mobile Recharge\n");
         printf("4. Send Money (OTP Transfer)\n");
         if (notifCount > 0) {
-            printf("5. Notification (%d) [NEW!]\n", notifCount);
+            printf("5. Notification  [%d NEW!]\n", notifCount);
         } else {
             printf("5. Notification (0)\n");
         }
