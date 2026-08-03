@@ -7,7 +7,8 @@
 #define FILENAME "users.dat"
 
 // ---------------- DATA STRUCTURE ----------------
-struct User {
+struct User
+{
     char phone[50];
     char password[50];
     double balance; // <-- NEW: initial balance field
@@ -15,12 +16,13 @@ struct User {
 
 // ---------------- CLEAR SCREEN AND HEADER ----------------
 
-void clearScreenAndShowBanner() {
-    #ifdef _WIN32
-        system("cls");
-    #else
-        system("clear");
-    #endif
+void clearScreenAndShowBanner()
+{
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 
     printf("\n");
     printf(" +===================================================================+\n");
@@ -35,19 +37,22 @@ int validatePhoneNumber(char number[])
 {
     int i;
 
-    if (strlen(number) != 11) {
-        printf("Invalid! Number must be exactly 11 digits.\n");
+    if (strlen(number) != 11)
+    {
+        printf("Invalid! Number must be exactly 11 digits. Try again.\n");
         return 0;
     }
 
-    for (i = 0; i < 11; i++) {
-        if (number[i] < '0' || number[i] > '9') {
+    for (i = 0; i < 11; i++)
+    {
+        if (number[i] < '0' || number[i] > '9')
+        {
             printf("Invalid! Number must contain digits only.\n");
             return 0;
         }
     }
 
-    if(number[2] < '3' || number[2] > '9' || number[0] != '0' || number[1] !='1' )
+    if (number[2] < '3' || number[2] > '9' || number[0] != '0' || number[1] != '1')
     {
         printf("Invalid! Number must start with 013/014/015/016/018/019.\n");
         return 0;
@@ -63,7 +68,6 @@ void signUp()
 
     newUser.balance = 0.00; // <-- every new account starts with 0.00
 
-
     // Beautiful header
     printf("\n--- SIGN UP ---\n");
 
@@ -76,7 +80,6 @@ void signUp()
     printf("Enter password: ");
     scanf("%49s", newUser.password);
 
-    
     // check if phone already exists
     FILE *fp = fopen(FILENAME, "rb");
     if (fp != NULL)
@@ -278,7 +281,7 @@ void cashOut(struct User *user)
     char password[50];
     double amount, charge, total;
     int attempts = 3;
-    double CASH_OUT_RATE = 0.015;   // 1.5% cash out charge
+    double CASH_OUT_RATE = 0.015; // 1.5% cash out charge
 
     // ---------------- Screen 1: Number + Amount ----------------
     showOptionHeader();
@@ -288,6 +291,7 @@ void cashOut(struct User *user)
     {
         printf("Enter Agent number : ");
         scanf("%49s", agentNum);
+
     } while (!validatePhoneNumber(agentNum));
 
     printf("Enter Amount to cash out: ");
@@ -314,15 +318,15 @@ void cashOut(struct User *user)
     printf("><><><><><<< C A S H   O U T >>><><><><><\n\n");
     printf("Amount after adding cash out charge: %.2f\n", total);
     printf("Enter to Continue...");
-    getchar();   // leftover \n from scanf("%lf", ...) clear kore
-    getchar();   // asol Enter key press er jonno wait kore
+    getchar(); // leftover \n from scanf("%lf", ...) clear kore
+    getchar(); // asol Enter key press er jonno wait kore
 
     // ---------------- Screen 3: PIN/Password check ----------------
-    showOptionHeader(); 
+    showOptionHeader();
     printf("><><><><><<< C A S H   O U T -Rakib >>><><><><><\n\n");
     while (attempts > 0)
     {
-       
+
         printf("Enter your PIN: ");
         scanf("%49s", password);
 
@@ -340,7 +344,7 @@ void cashOut(struct User *user)
             }
             else
             {
-                user->balance += total;   // file update fail korle rollback
+                user->balance += total; // file update fail korle rollback
                 printf("Something went wrong. Balance not updated.\n");
             }
             return;
@@ -355,6 +359,112 @@ void cashOut(struct User *user)
         }
     }
 }
+//------------------ MBL Recharge------------------------
+
+void mblRecharge(struct User *user)
+{
+    char num[20];
+    char operatorName[15];
+    char pin[10];
+    double amount;
+    int conntype;
+    char prefix[4];
+    int attempts = 3;
+
+    showOptionHeader();
+    printf("==================[ MOBILE RECHARGE ]==================\n\n");
+
+    do
+    {
+        printf("Enter number: ");
+        scanf(" %19[^\n]", num);
+        while (getchar() != '\n')
+            ;
+
+    } while (!validatePhoneNumber(num));
+
+    strncpy(prefix, num, 3);
+    prefix[3] = '\0';
+
+    if (strcmp(prefix, "017") == 0 || strcmp(prefix, "013") == 0)
+        strcpy(operatorName, "Grameenphone");
+    else if (strcmp(prefix, "019") == 0 || strcmp(prefix, "014") == 0)
+        strcpy(operatorName, "Banglalink");
+    else if (strcmp(prefix, "018") == 0 || strcmp(prefix, "016") == 0)
+        strcpy(operatorName, "Robi");
+    else if (strcmp(prefix, "015") == 0)
+        strcpy(operatorName, "Teletalk");
+    else
+        strcpy(operatorName, "Unknown");
+
+    showOptionHeader();
+    printf("==================[ MOBILE RECHARGE ]==================\n\n");
+    printf("Recipient number: %s\n", num);
+    printf("Operator name   : %s\n\n", operatorName);
+    printf("Enter Recharge Amount: ");
+    scanf("%lf", &amount);
+
+    if (amount <= 10)
+    {
+        printf("Sorry! The amount is too low to transact.\n");
+        return;
+    }
+    if (amount > user->balance)
+    {
+        printf("Insufficient Balance! You have %.2f Taka.\n", user->balance);
+        return;
+    }
+    showOptionHeader();
+    printf("==================[ MOBILE RECHARGE ]==================\n\n");
+    printf("Select Type:\n");
+    printf("   1. Prepaid\n");
+    printf("   2. Postpaid\n");
+    printf("Choice: ");
+    scanf("%d", &conntype);
+
+    if (conntype != 1 && conntype != 2)
+    {
+        printf("Invalid choice.\n");
+        return;
+    }
+    showOptionHeader();
+    printf("==================[ MOBILE RECHARGE ]==================\n\n");
+
+    while (attempts > 0)
+    {
+        printf("Enter PIN: ");
+        scanf("%49s", pin);
+
+        if (strcmp(pin, user->password) == 0)
+        {
+            user->balance -= amount;
+
+            if (updateUserInFile(user))
+            {
+
+                showOptionHeader();
+                printf("==================[ MOBILE RECHARGE ]==================\n\n");
+                printf("Your Pocket Flow Mobile Recharge request of Tk %.2f for %s was successful.\n",
+                       amount, num);
+            }
+            else
+            {
+                user->balance += amount; // file update fail korle rollback
+                printf("Something went wrong. Balance not updated.\n");
+            }
+            return;
+        }
+        else
+        {
+            attempts--;
+            if (attempts > 0)
+                printf("Incorrect PIN! %d attempt(s) left. Try again.\n", attempts);
+            else
+                printf("Incorrect PIN! No attempts left. Recharge cancelled.\n");
+        }
+    }
+}
+
 // ---------------- DASHBOARD ----------------
 // user pointer -- karon balance update hole (Add Money etc.) shei change
 // dashboard e ferot ashle updated dekhate hobe
@@ -368,10 +478,10 @@ void dashboard(struct User *user)
 
         printf("1. Add Money\n");
         printf("2. Cash Out\n");
-        printf("3. Send Money\n");
+        printf("3. Mobile Rechage\n");
         printf("4. Send Money\n");
-        printf("4. Transaction History\n");
-        printf("5. Logout\n");
+        printf("5. Transaction History\n");
+        printf("6. Logout\n");
         printf("Choose an option: ");
         scanf("%d", &choice);
 
@@ -395,7 +505,7 @@ void dashboard(struct User *user)
 
         case 3:
             showOptionHeader();
-            printf("--- Send Money (friend's work here) ---\n");
+            mblRecharge(user);
             printf("\nPress Enter to return to dashboard...");
             getchar();
             getchar();
