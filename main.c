@@ -24,7 +24,7 @@ struct User
 // and first 3 digits must be one of: 013,014,015,016,018,019
 int validatePhoneNumber(char number[])
 {
-    char validPrefixes[6][4] = {"013", "014", "015", "016", "018", "019"};
+    char validPrefixes[8][4] = {"013", "014", "015", "016", "017", "018", "019"};
     int i, matched = 0;
 
     if (strlen(number) != 11)
@@ -57,7 +57,7 @@ int validatePhoneNumber(char number[])
 
     if (!matched)
     {
-        printf("Invalid! Number must start with 013/014/015/016/018/019.\n");
+        printf("Invalid! Number must start with 013/014/015/016/017/018/019.\n");
         return 0;
     }
 
