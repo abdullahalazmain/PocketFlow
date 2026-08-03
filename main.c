@@ -289,13 +289,9 @@ void cashOut(struct User *user)
 
     do
     {
-<<<<<<< HEAD
-        printf("Enter Number: ");
-        scanf(" %11[^\n]", agentNum);
-=======
         printf("Enter Agent number : ");
         scanf("%49s", agentNum);
->>>>>>> main
+
     } while (!validatePhoneNumber(agentNum));
 
     printf("Enter Amount to cash out: ");
@@ -482,17 +478,10 @@ void dashboard(struct User *user)
 
         printf("1. Add Money\n");
         printf("2. Cash Out\n");
-<<<<<<< HEAD
         printf("3. Mobile Rechage\n");
         printf("4. Send Money\n");
         printf("5. Transaction History\n");
         printf("6. Logout\n");
-=======
-        printf("3. Send Money\n");
-        printf("4. Send Money\n");
-        printf("4. Transaction History\n");
-        printf("5. Logout\n");
->>>>>>> main
         printf("Choose an option: ");
         scanf("%d", &choice);
 
