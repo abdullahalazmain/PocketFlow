@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <unistd.h>
 
 #define FILENAME "users.dat"
 
@@ -103,6 +104,10 @@ void signUp()
     fclose(fp);
 
     printf("Sign up successful! You can now sign in.\n");
+
+    printf("\n   Press Enter to return...");
+    while (getchar() != '\n');
+    getchar();
 }
 
 // ---------------- SIGN IN ----------------
@@ -165,8 +170,10 @@ int signIn(struct User *loggedInUser)
                 printf("Wrong password! No attempts left. Login failed.\n");
         }
     }
+    sleep(1);
 
     return chk;
+    
 }
 
 // ---------------- BANNER (project name design) ----------------
@@ -279,8 +286,8 @@ void cashOut(struct User *user)
 
     do
     {
-        printf("Enter Number: ");
-        scanf(" %11[^\n]", agentNum);   // shuru te space -- leftover \n skip korbe
+        printf("Enter Agent number : ");
+        scanf("%49s", agentNum);
     } while (!validatePhoneNumber(agentNum));
 
     printf("Enter Amount to cash out: ");
@@ -362,6 +369,7 @@ void dashboard(struct User *user)
         printf("1. Add Money\n");
         printf("2. Cash Out\n");
         printf("3. Send Money\n");
+        printf("4. Send Money\n");
         printf("4. Transaction History\n");
         printf("5. Logout\n");
         printf("Choose an option: ");
