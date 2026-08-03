@@ -7,25 +7,25 @@
 
 // ---------------- DATA STRUCTURE ----------------
 struct User {
-    char username[50];
+    char phone[50];
     char password[50];
     double balance; // <-- NEW: initial balance field
 };
 
 // ---------------- CLEAR SCREEN AND HEADER ----------------
 
-void CLEAR_SCREEN() {
+void clearScreenAndShowBanner() {
     #ifdef _WIN32
         system("cls");
     #else
         system("clear");
     #endif
 
-    //printf("\n");
-    //printf(" +===================================================================+\n");
-    //printf(" |                   P O C K E T F L O W                             |\n");
-    //printf(" |          Next-Gen Digital Wallet & Finance                        |\n");
-    //printf(" +===================================================================+\n\n");
+    printf("\n");
+    printf(" +===================================================================+\n");
+    printf(" |                   P O C K E T F L O W                             |\n");
+    printf(" |          Next-Gen Digital Wallet & Finance                        |\n");
+    printf(" +===================================================================+\n\n");
 }
 
 // ---------------- VALIDATE PHONE NUMBER (BD , 11 DIGITS, 013-019) ----------------
@@ -69,23 +69,23 @@ void signUp()
     do
     {
         printf("Enter phone number : ");
-        scanf("%49s", newUser.username);
-    } while (!validatePhoneNumber(newUser.username));
+        scanf("%49s", newUser.phone);
+    } while (!validatePhoneNumber(newUser.phone));
 
     printf("Enter password: ");
     scanf("%49s", newUser.password);
 
     
-    // check if username already exists
+    // check if phone already exists
     FILE *fp = fopen(FILENAME, "rb");
     if (fp != NULL)
     {
         struct User temp;
         while (fread(&temp, sizeof(struct User), 1, fp) == 1)
         {
-            if (strcmp(temp.username, newUser.username) == 0)
+            if (strcmp(temp.phone, newUser.phone) == 0)
             {
-                printf("Username already exists! Try a different one.\n");
+                printf("phone already exists! Try a different one.\n");
                 fclose(fp);
                 return;
             }
@@ -106,11 +106,11 @@ void signUp()
 }
 
 // ---------------- SIGN IN ----------------
-// loggedInUser pointer e matched user er FULL data (username + balance shoho)
+// loggedInUser pointer e matched user er FULL data (phone + balance shoho)
 // fill kore dey, jate dashboard e egula use kora jay
 int signIn(struct User *loggedInUser)
 {
-    char username[50], password[50];
+    char phone[50], password[50];
     struct User temp;
     FILE *fp;
     int found = 0;
@@ -119,7 +119,7 @@ int signIn(struct User *loggedInUser)
 
     printf("\n--- SIGN IN ---\n");
     printf("Enter phonenumber: ");
-    scanf("%49s", username);
+    scanf("%49s", phone);
 
     fp = fopen(FILENAME, "rb");
     if (fp == NULL)
@@ -130,7 +130,7 @@ int signIn(struct User *loggedInUser)
 
     while (fread(&temp, sizeof(struct User), 1, fp) == 1)
     {
-        if (strcmp(temp.username, username) == 0)
+        if (strcmp(temp.phone, phone) == 0)
         {
             found = 1;
             break;
@@ -140,7 +140,7 @@ int signIn(struct User *loggedInUser)
 
     if (!found)
     {
-        printf("Username not found. Please sign up first.\n");
+        printf("phone not found. Please sign up first.\n");
         return 0;
     }
 
@@ -151,7 +151,7 @@ int signIn(struct User *loggedInUser)
 
         if (strcmp(temp.password, password) == 0)
         {
-            printf("Login successful! Welcome, %s.\n", username);
+            printf("Login successful! Welcome, %s.\n", phone);
             *loggedInUser = temp; // <-- matched user er data (balance shoho) copy kora hocche
             chk = 1;
             break;
@@ -170,20 +170,19 @@ int signIn(struct User *loggedInUser)
 }
 
 // ---------------- BANNER (project name design) ----------------
-void printBanner()
+/*void printBanner()
 {
     printf("=====================================\n");
     printf("            P O C K E T   F L O W    \n");
     printf("=====================================\n");
-}
+}*/
 
 // ---------------- DASHBOARD HEADER (banner + balance) ----------------
 // Eita dashboard e thakle call hobe -- screen clear kore
 // banner + corner e balance show kore
 void showDashboardHeader(double balance)
 {
-    CLEAR_SCREEN();
-    printBanner();
+    clearScreenAndShowBanner();
     printf("Balance: %.2f\n", balance); // "corner" e balance -- console e ei line ta
     printf("-------------------------------------\n");
 }
@@ -193,8 +192,7 @@ void showDashboardHeader(double balance)
 // screen clear kore shudhu banner dekhabe, balance hide thakbe
 void showOptionHeader()
 {
-    CLEAR_SCREEN();
-    printBanner();
+    clearScreenAndShowBanner();
     printf("-------------------------------------\n");
 }
 
@@ -214,7 +212,7 @@ int updateUserInFile(struct User *user)
     struct User temp;
     while (fread(&temp, sizeof(struct User), 1, fp) == 1)
     {
-        if (strcmp(temp.username, user->username) == 0)
+        if (strcmp(temp.phone, user->phone) == 0)
         {
             fseek(fp, -(long)sizeof(struct User), SEEK_CUR); // ek record pichone
             fwrite(user, sizeof(struct User), 1, fp);        // notun data overwrite
@@ -314,7 +312,7 @@ void cashOut(struct User *user)
 
     // ---------------- Screen 3: PIN/Password check ----------------
     showOptionHeader(); 
-    printf("><><><><><<< C A S H   O U T >>><><><><><\n\n");
+    printf("><><><><><<< C A S H   O U T -Rakib >>><><><><><\n\n");
     while (attempts > 0)
     {
        
@@ -420,11 +418,7 @@ int main()
 
     while (1)
     {
-        printf("\n");
-        printf(" +===================================================================+\n");
-        printf(" |                   P O C K E T F L O W                             |\n");
-        printf(" |          Next-Gen Digital Wallet & Finance                        |\n");
-        printf(" +===================================================================+\n\n");
+        clearScreenAndShowBanner();
         printf("1. Sign Up\n");
         printf("2. Sign In\n");
         printf("3. Exit\n");
