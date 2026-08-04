@@ -13,6 +13,7 @@
 
 // User structure
 struct User {
+    char name[100];     // Added Name feature
     char phone[50];
     char password[50]; //char username[50];
     double balance;
@@ -53,7 +54,7 @@ void getCurrentFormattedTime(char *buffer);
 void recordTransaction(char *userPhone, char *type, char *details, double amount, double postBalance);
 void showTransactionHistory(struct User *user);
 void showOptionHeader();
-void showDashboardHeader(double balance);
+void showDashboardHeader(char *fullName, double balance); // Updated prototype
 void clearScreenAndShowBanner();
 void dashboard(struct User *user);
 void clearInputBuffer();
@@ -141,12 +142,19 @@ void signUp() {
     // scanf(" %49[^\n]", newUser.name);  <rakib>
     // clearInputBuffer();
 
+    // Input Name
+    printf("Enter Full Name: ");
+    fgets(newUser.name, sizeof(newUser.name), stdin);
+    newUser.name[strcspn(newUser.name, "\n")] = '\0'; // Remove trailing newline
+
+    // Input Phone Number
     do {
         printf("Enter phone number : ");
         scanf("%49s", newUser.phone);
         clearInputBuffer();
     } while (!validatePhoneNumber(newUser.phone));
 
+    // Input Password
     printf("Enter password: ");
     scanf("%49s", newUser.password);
     clearInputBuffer();
@@ -175,7 +183,7 @@ void signUp() {
     fwrite(&newUser, sizeof(struct User), 1, fp);
     fclose(fp);
 
-    printf("\nSign up successful! You can now sign in.\n");
+    printf("\nSign up successful! Welcome, %s. You can now sign in.\n", newUser.name);
     printf("\nPress Enter to return...");
     getchar();
 }
@@ -221,7 +229,7 @@ int signIn(struct User *loggedInUser) {
         scanf("%49s", password);
 
         if (strcmp(temp.password, password) == 0) {
-            printf("Login successful! Welcome, %s.\n", phone);
+            printf("Login successful! Welcome back, %s.\n", temp.name);
             *loggedInUser = temp;
             chk = 1;
             break;
@@ -239,9 +247,9 @@ int signIn(struct User *loggedInUser) {
 }
 
 // ---------------- DASHBOARD HEADER ----------------
-void showDashboardHeader(double balance) {
+void showDashboardHeader(char *fullName, double balance) {
     clearScreenAndShowBanner();
-    printf(" Balance: %.2f BDT\n", balance);
+    printf(" User: %s                  Balance: %.2f BDT\n",fullName, balance );
     printf("---------------------------------------------------------------------\n");
 }
 // void showDashboardHeader(char *name, double balance) {
@@ -550,7 +558,7 @@ void sendMoney(struct User *sender) {
                 recordTransaction(sender->phone, "Send Money", receiverPhone, amount, sender->balance);
 
                 showOptionHeader();
-                printf("\nSUCCESS! %.2f BDT sent to %s (Pending Claim)\n", amount, receiverPhone);
+                printf("\nSUCCESS! %.2f BDT sent to %s (%s) (Pending Claim)\n", amount, receiver.name, receiverPhone);
                 printf("=========================================\n");
                 printf("  SECURITY OTP CODE : [ %d ]             \n", generatedOTP);
                 printf("=========================================\n");
@@ -714,7 +722,7 @@ void showTransactionHistory(struct User *user) {
     FILE *fp = fopen(TXN_FILE, "rb");
     
     showOptionHeader();
-    printf("                             P O C K E T F L O W                                 \n");
+    printf("                                 P O C K E T F L O W                                 \n");
     printf("                      T R A N S A C T I O N   H I S T O R Y                      \n");
     printf("====================================================================================\n");
 
@@ -765,7 +773,7 @@ void dashboard(struct User *user) {
     int choice;
 
     while (1) {
-        showDashboardHeader(user->balance);
+        showDashboardHeader(user->name, user->balance);
 
         int notifCount = getPendingNotificationCount(user->phone);
 
