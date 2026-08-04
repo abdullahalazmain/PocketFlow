@@ -14,7 +14,7 @@
 // User structure
 struct User {
     char phone[50];
-    char password[50];
+    char password[50]; //char username[50];
     double balance;
 };
 
@@ -68,10 +68,10 @@ void clearScreenAndShowBanner() {
     #endif
 
     printf("\n");
-    printf(" +===================================================================+\n");
-    printf(" |                   P O C K E T F L O W                             |\n");
-    printf(" |            Next-Gen Digital Wallet & Finance                      |\n");
-    printf(" +===================================================================+\n\n");
+    printf("    +=======================================================================+\n");
+    printf("    |                           P O C K E T F L O W                         |\n");
+    printf("    |                     Next-Gen Digital Wallet & Finance                 |\n");
+    printf("    +=======================================================================+\n\n");
 }
 
 void clearInputBuffer() {
@@ -136,6 +136,10 @@ void signUp() {
     newUser.balance = 0.00;
 
     printf("\n--- SIGN UP ---\n");
+    
+    // printf("Enter your name: ");
+    // scanf(" %49[^\n]", newUser.name);  <rakib>
+    // clearInputBuffer();
 
     do {
         printf("Enter phone number : ");
@@ -240,6 +244,11 @@ void showDashboardHeader(double balance) {
     printf(" Balance: %.2f BDT\n", balance);
     printf("---------------------------------------------------------------------\n");
 }
+// void showDashboardHeader(char *name, double balance) {
+//     clearScreenAndShowBanner();
+//     printf(" %s's Balance: %.2f BDT\n", name, balance);    <rakib>
+//     printf("---------------------------------------------------------------------\n");
+// }
 
 // ---------------- OPTION HEADER ----------------
 void showOptionHeader() {
@@ -279,7 +288,8 @@ void addMoney(struct User *user) {
 
     do {
         printf("Enter Agent Number: ");
-        scanf(" %11[^\n]", agentNum);
+        scanf(" %14[^\n]", agentNum);
+        while (getchar() != '\n'); //new added <rakib>
     } while (!validatePhoneNumber(agentNum));
 
     printf("Enter Amount to Add: ");
@@ -311,7 +321,7 @@ void cashOut(struct User *user) {
     double CASH_OUT_RATE = 0.015;
 
     showOptionHeader();
-    printf("><><><><><<< C A S H   O U T >>><><><><><\n");
+    printf("                =============== C A S H   O U T ===============   \n");
 
     do {
         printf("Enter Agent number : ");
