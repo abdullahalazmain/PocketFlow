@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
-#include <time.h> // For Date/Time and OTP Generation
+#include <time.h>
 
 #define FILENAME "users.dat"
 #define CLAIMS_FILE "claims.dat"
@@ -11,15 +11,15 @@
 
 // ---------------- DATA STRUCTURES ----------------
 
-// User structure
+// User structure- signup/signin
 struct User {
-    char name[100];     // Added Name feature
+    char name[100];
     char phone[50];
-    char password[50]; //char username[50];
+    char password[50];
     double balance;
 };
 
-// OTP Claim Structure
+// Claim Structure- OTP
 struct Claim {
     char senderPhone[50];
     char receiverPhone[50];
@@ -31,14 +31,15 @@ struct Claim {
 // Transaction History Structure
 struct Transaction {
     char userPhone[50];
-    char type[30];      // "Add Money", "Cash Out", "Send Money", "Received Money", "Mobile Recharge"
+    char type[30];
     char details[50];   // Target phone/agent number or operator
     double amount;
-    double postBalance; // Balance after transaction
-    char timestamp[20]; // "YYYY-MM-DD HH:MM"
+    double postBalance;
+    char timestamp[20];
 };
 
-// ================= FUNCTION PROTOTYPES =================
+// ---------------- FUNCTION PROTOTYPES ----------------
+
 void signUp();
 int signIn(struct User *loggedInUser);
 void addMoney(struct User *user);
@@ -54,13 +55,14 @@ void getCurrentFormattedTime(char *buffer);
 void recordTransaction(char *userPhone, char *type, char *details, double amount, double postBalance);
 void showTransactionHistory(struct User *user);
 void showOptionHeader();
-void showDashboardHeader(char *fullName, double balance); // Updated prototype
+void showDashboardHeader(char *fullName, double balance);
 void clearScreenAndShowBanner();
 void dashboard(struct User *user);
 void clearInputBuffer();
 
-// ---------------- CLEAR SCREEN AND HEADER ----------------
+// ---------------- CLEAR SCREEN AND BUFFER ----------------
 
+//Clear Screen and showed Banner
 void clearScreenAndShowBanner() {
     #ifdef _WIN32
         system("cls");
@@ -75,12 +77,14 @@ void clearScreenAndShowBanner() {
     printf("    +=======================================================================+\n\n");
 }
 
+//Clear Screen
 void clearInputBuffer() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
 // ---------------- TIME FORMATTER HELPER ----------------
+
 void getCurrentFormattedTime(char *buffer) {
     time_t rawtime;
     struct tm *info;
