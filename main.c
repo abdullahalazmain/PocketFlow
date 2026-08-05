@@ -138,14 +138,9 @@ void signUp() {
 
     printf("\n--- SIGN UP ---\n");
     
-    // printf("Enter your name: ");
-    // scanf(" %49[^\n]", newUser.name);  <rakib>
-    // clearInputBuffer();
-
-    // Input Name
-    printf("Enter Full Name: ");
-    fgets(newUser.name, sizeof(newUser.name), stdin);
-    newUser.name[strcspn(newUser.name, "\n")] = '\0'; // Remove trailing newline
+    printf("Enter your name: ");
+    scanf(" %49[^\n]", newUser.name);
+    clearInputBuffer();
 
     // Input Phone Number
     do {
