@@ -198,6 +198,7 @@ void signUp()
 
         if (len != 4)
         {
+            printf("Invalid PIN! Must be exactly 4 digits.\n");
             isvalid = 0;
         }
         else
