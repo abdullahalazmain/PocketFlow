@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
-#include <time.h> // For Date/Time and OTP Generation
+#include <time.h> 
 #include <ctype.h>
 
 #define FILENAME "users.dat"
@@ -155,6 +155,7 @@ void signUp()
     printf("\n--- SIGN UP ---\n");
 
     int i = 0;
+    int name_check = 1; 
 
     do
     {
@@ -163,16 +164,18 @@ void signUp()
         scanf(" %49[^\n]", newUser.name);
         clearInputBuffer();
 
+
         for (i = 0; newUser.name[i] != '\0'; i++)
         {
-            if (!isalpha(newUser.name[i]))
+            if (!isalpha(newUser.name[i] ) && !isspace(newUser.name[i]))
             {
                 printf("Invalid name! Only Alphabet are allowed. Try again.\n");
+                name_check = 0 ; 
                 break;
             }
         }
 
-    } while (!isalpha(newUser.name[i]));
+    } while (!name_check);
 
     // Input Phone Number
     do
