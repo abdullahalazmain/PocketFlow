@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h> // For Date/Time and OTP Generation
+#include <ctype.h>
 
 #define FILENAME "users.dat"
 #define CLAIMS_FILE "claims.dat"
@@ -12,15 +13,17 @@
 // ---------------- DATA STRUCTURES ----------------
 
 // User structure
-struct User {
-    char name[100];     // Added Name feature
+struct User
+{
+    char name[100]; // Added Name feature
     char phone[50];
-    char password[50]; //char username[50];
+    char password[50]; // char username[50];
     double balance;
 };
 
 // OTP Claim Structure
-struct Claim {
+struct Claim
+{
     char senderPhone[50];
     char receiverPhone[50];
     double amount;
@@ -29,10 +32,11 @@ struct Claim {
 };
 
 // Transaction History Structure
-struct Transaction {
+struct Transaction
+{
     char userPhone[50];
-    char type[30];      // "Add Money", "Cash Out", "Send Money", "Received Money", "Mobile Recharge"
-    char details[50];   // Target phone/agent number or operator
+    char type[30];    // "Add Money", "Cash Out", "Send Money", "Received Money", "Mobile Recharge"
+    char details[50]; // Target phone/agent number or operator
     double amount;
     double postBalance; // Balance after transaction
     char timestamp[20]; // "YYYY-MM-DD HH:MM"
@@ -61,12 +65,13 @@ void clearInputBuffer();
 
 // ---------------- CLEAR SCREEN AND HEADER ----------------
 
-void clearScreenAndShowBanner() {
-    #ifdef _WIN32
-        system("cls");
-    #else
-        system("clear");
-    #endif
+void clearScreenAndShowBanner()
+{
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 
     printf("\n");
     printf("    +=======================================================================+\n");
@@ -75,13 +80,16 @@ void clearScreenAndShowBanner() {
     printf("    +=======================================================================+\n\n");
 }
 
-void clearInputBuffer() {
+void clearInputBuffer()
+{
     int c;
-    while ((c = getchar()) != '\n' && c != EOF);
+    while ((c = getchar()) != '\n' && c != EOF)
+        ;
 }
 
 // ---------------- TIME FORMATTER HELPER ----------------
-void getCurrentFormattedTime(char *buffer) {
+void getCurrentFormattedTime(char *buffer)
+{
     time_t rawtime;
     struct tm *info;
     time(&rawtime);
@@ -90,9 +98,11 @@ void getCurrentFormattedTime(char *buffer) {
 }
 
 // ---------------- LOG TRANSACTION TO FILE ----------------
-void recordTransaction(char *userPhone, char *type, char *details, double amount, double postBalance) {
+void recordTransaction(char *userPhone, char *type, char *details, double amount, double postBalance)
+{
     FILE *fp = fopen(TXN_FILE, "ab");
-    if (fp == NULL) return;
+    if (fp == NULL)
+        return;
 
     struct Transaction txn;
     strcpy(txn.userPhone, userPhone);
@@ -107,22 +117,27 @@ void recordTransaction(char *userPhone, char *type, char *details, double amount
 }
 
 // ---------------- VALIDATE PHONE NUMBER (BD , 11 DIGITS) ----------------
-int validatePhoneNumber(char number[]) {
+int validatePhoneNumber(char number[])
+{
     int i;
 
-    if (strlen(number) != 11) {
+    if (strlen(number) != 11)
+    {
         printf("Invalid! Number must be exactly 11 digits.\n");
         return 0;
     }
 
-    for (i = 0; i < 11; i++) {
-        if (number[i] < '0' || number[i] > '9') {
+    for (i = 0; i < 11; i++)
+    {
+        if (number[i] < '0' || number[i] > '9')
+        {
             printf("Invalid! Number must contain digits only.\n");
             return 0;
         }
     }
 
-    if (number[2] < '3' || number[2] > '9' || number[0] != '0' || number[1] != '1') {
+    if (number[2] < '3' || number[2] > '9' || number[0] != '0' || number[1] != '1')
+    {
         printf("Invalid! Number must start with 013/014/015/016/018/019.\n");
         return 0;
     }
@@ -131,34 +146,80 @@ int validatePhoneNumber(char number[]) {
 }
 
 // ---------------- SIGN UP ----------------
-void signUp() {
+void signUp()
+{
     struct User newUser;
     memset(&newUser, 0, sizeof(struct User));
     newUser.balance = 0.00;
 
     printf("\n--- SIGN UP ---\n");
-    
-    printf("Enter your name: ");
-    scanf(" %49[^\n]", newUser.name);
-    clearInputBuffer();
+
+    int i = 0;
+
+    do
+    {
+
+        printf("Enter your name: ");
+        scanf(" %49[^\n]", newUser.name);
+        clearInputBuffer();
+
+        for (i = 0; newUser.name[i] != '\0'; i++)
+        {
+            if (!isalpha(newUser.name[i]))
+            {
+                printf("Invalid name! Only Alphabet are allowed. Try again.\n");
+                break;
+            }
+        }
+
+    } while (!isalpha(newUser.name[i]));
 
     // Input Phone Number
-    do {
-        printf("Enter phone number : ");
+    do
+    {
+        printf("Enter Phone Number : ");
         scanf("%49s", newUser.phone);
         clearInputBuffer();
     } while (!validatePhoneNumber(newUser.phone));
 
     // Input Password
-    printf("Enter password: ");
-    scanf("%49s", newUser.password);
-    clearInputBuffer();
+    // Input Password
+    int isvalid = 1;
+    do
+    {
+
+        printf("Enter PIN : ");
+        scanf("%49s", newUser.password);
+        clearInputBuffer();
+        int len = strlen(newUser.password);
+
+        if (len != 4)
+        {
+            isvalid = 0;
+        }
+        else
+        {
+            isvalid = 1;
+            for (int i = 0; i < len; i++)
+            {
+                if (!isdigit(newUser.password[i]))
+                {
+                    printf("Invalid PIN! Only Numbers are allowed. Try again.\n");
+                    isvalid = 0;
+                    break;
+                }
+            }
+        }
+    } while (!isvalid);
 
     FILE *fp = fopen(FILENAME, "rb");
-    if (fp != NULL) {
+    if (fp != NULL)
+    {
         struct User temp;
-        while (fread(&temp, sizeof(struct User), 1, fp) == 1) {
-            if (strcmp(temp.phone, newUser.phone) == 0) {
+        while (fread(&temp, sizeof(struct User), 1, fp) == 1)
+        {
+            if (strcmp(temp.phone, newUser.phone) == 0)
+            {
                 printf("\nPhone already exists! Try a different one.\n");
                 fclose(fp);
 
@@ -171,7 +232,8 @@ void signUp() {
     }
 
     fp = fopen(FILENAME, "ab");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("Error opening file!\n");
         return;
     }
@@ -184,7 +246,8 @@ void signUp() {
 }
 
 // ---------------- SIGN IN ----------------
-int signIn(struct User *loggedInUser) {
+int signIn(struct User *loggedInUser)
+{
     char phone[50], password[50];
     struct User temp;
     FILE *fp;
@@ -197,38 +260,50 @@ int signIn(struct User *loggedInUser) {
     scanf("%49s", phone);
 
     fp = fopen(FILENAME, "rb");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("No users registered yet. Please sign up first.\n");
         printf("\n   Press Enter to return...");
-        while (getchar() != '\n'); getchar();
+        while (getchar() != '\n')
+            ;
+        getchar();
         return 0;
     }
 
-    while (fread(&temp, sizeof(struct User), 1, fp) == 1) {
-        if (strcmp(temp.phone, phone) == 0) {
+    while (fread(&temp, sizeof(struct User), 1, fp) == 1)
+    {
+        if (strcmp(temp.phone, phone) == 0)
+        {
             found = 1;
             break;
         }
     }
     fclose(fp);
 
-    if (!found) {
+    if (!found)
+    {
         printf("Phone not found. Please sign up first.\n");
         printf("\n   Press Enter to return...");
-        while (getchar() != '\n'); getchar();
+        while (getchar() != '\n')
+            ;
+        getchar();
         return 0;
     }
 
-    while (attempts > 0) {
+    while (attempts > 0)
+    {
         printf("Enter password: ");
         scanf("%49s", password);
 
-        if (strcmp(temp.password, password) == 0) {
+        if (strcmp(temp.password, password) == 0)
+        {
             printf("Login successful! Welcome back, %s.\n", temp.name);
             *loggedInUser = temp;
             chk = 1;
             break;
-        } else {
+        }
+        else
+        {
             attempts--;
             if (attempts > 0)
                 printf("Wrong password! %d attempt(s) left.\n", attempts);
@@ -242,9 +317,10 @@ int signIn(struct User *loggedInUser) {
 }
 
 // ---------------- DASHBOARD HEADER ----------------
-void showDashboardHeader(char *fullName, double balance) {
+void showDashboardHeader(char *fullName, double balance)
+{
     clearScreenAndShowBanner();
-    printf(" User: %s                  Balance: %.2f BDT\n",fullName, balance );
+    printf(" User: %s                  Balance: %.2f BDT\n", fullName, balance);
     printf("---------------------------------------------------------------------\n");
 }
 // void showDashboardHeader(char *name, double balance) {
@@ -254,22 +330,27 @@ void showDashboardHeader(char *fullName, double balance) {
 // }
 
 // ---------------- OPTION HEADER ----------------
-void showOptionHeader() {
+void showOptionHeader()
+{
     clearScreenAndShowBanner();
     printf("---------------------------------------------------------------------------------\n");
 }
 
 // ---------------- UPDATE USER RECORD IN FILE ----------------
-int updateUserInFile(struct User *user) {
+int updateUserInFile(struct User *user)
+{
     FILE *fp = fopen(FILENAME, "r+b");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("Error: could not open file to update balance.\n");
         return 0;
     }
 
     struct User temp;
-    while (fread(&temp, sizeof(struct User), 1, fp) == 1) {
-        if (strcmp(temp.phone, user->phone) == 0) {
+    while (fread(&temp, sizeof(struct User), 1, fp) == 1)
+    {
+        if (strcmp(temp.phone, user->phone) == 0)
+        {
             fseek(fp, -(long)sizeof(struct User), SEEK_CUR);
             fwrite(user, sizeof(struct User), 1, fp);
             fclose(fp);
@@ -283,40 +364,48 @@ int updateUserInFile(struct User *user) {
 }
 
 // ---------------- ADD MONEY ----------------
-void addMoney(struct User *user) {
+void addMoney(struct User *user)
+{
     char agentNum[12];
     double amount;
 
     printf("\n~~~~~~~~~~>> ADD MONEY <<~~~~~~~~~~\n");
 
-    do {
+    do
+    {
         printf("Enter Agent Number: ");
         scanf(" %14[^\n]", agentNum);
-        while (getchar() != '\n'); //new added <rakib>
+        while (getchar() != '\n')
+            ; // new added <rakib>
     } while (!validatePhoneNumber(agentNum));
 
     printf("Enter Amount to Add: ");
     scanf("%lf", &amount);
 
-    if (amount <= 0) {
+    if (amount <= 0)
+    {
         printf("Your amount is too low. Try again.\n");
         return;
     }
 
     user->balance += amount;
 
-    if (updateUserInFile(user)) {
+    if (updateUserInFile(user))
+    {
         recordTransaction(user->phone, "Add Money", agentNum, amount, user->balance);
         printf("\nSuccessfully added %.2f Taka via agent %s.\n", amount, agentNum);
         printf("New Balance: %.2f BDT\n", user->balance);
-    } else {
+    }
+    else
+    {
         user->balance -= amount; // Rollback
         printf("Something went wrong. Balance not updated.\n");
     }
 }
 
 // ---------------- CASH OUT ----------------
-void cashOut(struct User *user) {
+void cashOut(struct User *user)
+{
     char agentNum[12];
     char password[50];
     double amount, charge, total;
@@ -326,7 +415,8 @@ void cashOut(struct User *user) {
     showOptionHeader();
     printf("                =============== C A S H   O U T ===============   \n");
 
-    do {
+    do
+    {
         printf("Enter Agent number : ");
         scanf("%49s", agentNum);
     } while (!validatePhoneNumber(agentNum));
@@ -334,7 +424,8 @@ void cashOut(struct User *user) {
     printf("Enter Amount to cash out: ");
     scanf("%lf", &amount);
 
-    if (amount <= 0) {
+    if (amount <= 0)
+    {
         printf("Your amount is too low. Try again.\n");
         return;
     }
@@ -342,7 +433,8 @@ void cashOut(struct User *user) {
     charge = amount * CASH_OUT_RATE;
     total = amount + charge;
 
-    if (total > user->balance) {
+    if (total > user->balance)
+    {
         printf("Insufficient Balance! You need %.2f Taka but you have %.2f Taka.\n", total, user->balance);
         return;
     }
@@ -351,27 +443,35 @@ void cashOut(struct User *user) {
     printf("><><><><><<< C A S H   O U T >>><><><><><\n\n");
     printf("Amount after adding cash out charge: %.2f BDT\n", total);
     printf("Enter to Continue...");
-    getchar(); getchar();
+    getchar();
+    getchar();
 
-    showOptionHeader(); 
+    showOptionHeader();
     printf("><><><><><<< C A S H   O U T >>><><><><><\n\n");
-    while (attempts > 0) {
+    while (attempts > 0)
+    {
         printf("Enter your PIN: ");
         scanf("%49s", password);
 
-        if (strcmp(password, user->password) == 0) {
+        if (strcmp(password, user->password) == 0)
+        {
             user->balance -= total;
 
-            if (updateUserInFile(user)) {
+            if (updateUserInFile(user))
+            {
                 recordTransaction(user->phone, "Cash Out", agentNum, total, user->balance);
                 showOptionHeader();
                 printf("Successfully cashed out %.2f BDT! Current balance: %.2f BDT\n", amount, user->balance);
-            } else {
+            }
+            else
+            {
                 user->balance += total; // Rollback
                 printf("Something went wrong. Balance not updated.\n");
             }
             return;
-        } else {
+        }
+        else
+        {
             attempts--;
             if (attempts > 0)
                 printf("Wrong PIN! %d attempt(s) left. Try again.\n", attempts);
@@ -382,7 +482,8 @@ void cashOut(struct User *user) {
 }
 
 // ---------------- MOBILE RECHARGE ----------------
-void mblRecharge(struct User *user) {
+void mblRecharge(struct User *user)
+{
     char num[20];
     char operatorName[15];
     char pin[50];
@@ -394,7 +495,8 @@ void mblRecharge(struct User *user) {
     showOptionHeader();
     printf("==================[ MOBILE RECHARGE ]==================\n\n");
 
-    do {
+    do
+    {
         printf("Enter number: ");
         scanf(" %19[^\n]", num);
     } while (!validatePhoneNumber(num));
@@ -420,11 +522,13 @@ void mblRecharge(struct User *user) {
     printf("Enter Recharge Amount: ");
     scanf("%lf", &amount);
 
-    if (amount <= 10) {
+    if (amount <= 10)
+    {
         printf("Sorry! Minimum recharge amount is 11 Taka.\n");
         return;
     }
-    if (amount > user->balance) {
+    if (amount > user->balance)
+    {
         printf("Insufficient Balance! You have %.2f Taka.\n", user->balance);
         return;
     }
@@ -437,7 +541,8 @@ void mblRecharge(struct User *user) {
     printf("Choice: ");
     scanf("%d", &conntype);
 
-    if (conntype != 1 && conntype != 2) {
+    if (conntype != 1 && conntype != 2)
+    {
         printf("Invalid choice.\n");
         return;
     }
@@ -445,14 +550,17 @@ void mblRecharge(struct User *user) {
     showOptionHeader();
     printf("==================[ MOBILE RECHARGE ]==================\n\n");
 
-    while (attempts > 0) {
+    while (attempts > 0)
+    {
         printf("Enter PIN: ");
         scanf("%49s", pin);
 
-        if (strcmp(pin, user->password) == 0) {
+        if (strcmp(pin, user->password) == 0)
+        {
             user->balance -= amount;
 
-            if (updateUserInFile(user)) {
+            if (updateUserInFile(user))
+            {
                 char detailStr[50];
                 snprintf(detailStr, sizeof(detailStr), "%s (%s)", num, operatorName);
                 recordTransaction(user->phone, "Mobile Recharge", detailStr, amount, user->balance);
@@ -461,12 +569,16 @@ void mblRecharge(struct User *user) {
                 printf("==================[ MOBILE RECHARGE ]==================\n\n");
                 printf("SUCCESS! Recharge of %.2f BDT sent to %s (%s).\n", amount, num, operatorName);
                 printf("Current Balance: %.2f BDT\n", user->balance);
-            } else {
+            }
+            else
+            {
                 user->balance += amount; // Rollback
                 printf("Transaction Failed! Balance not updated.\n");
             }
             return;
-        } else {
+        }
+        else
+        {
             attempts--;
             if (attempts > 0)
                 printf("Wrong PIN! %d attempt(s) left. Try again.\n", attempts);
@@ -477,7 +589,8 @@ void mblRecharge(struct User *user) {
 }
 
 // ---------------- SENDER: SEND MONEY WITH OTP ----------------
-void sendMoney(struct User *sender) {
+void sendMoney(struct User *sender)
+{
     char receiverPhone[50];
     char password[50];
     double amount;
@@ -488,20 +601,25 @@ void sendMoney(struct User *sender) {
 
     printf("\n~~~~~~~~~~>> SEND MONEY (OTP TRANSFER) <<~~~~~~~~~~\n");
 
-    do {
+    do
+    {
         printf("Enter Receiver Phone Number: ");
         scanf("%49s", receiverPhone);
     } while (!validatePhoneNumber(receiverPhone));
 
-    if (strcmp(sender->phone, receiverPhone) == 0) {
+    if (strcmp(sender->phone, receiverPhone) == 0)
+    {
         printf("Error: You cannot send money to your own number!\n");
         return;
     }
 
     fp = fopen(FILENAME, "rb");
-    if (fp != NULL) {
-        while (fread(&receiver, sizeof(struct User), 1, fp) == 1) {
-            if (strcmp(receiver.phone, receiverPhone) == 0) {
+    if (fp != NULL)
+    {
+        while (fread(&receiver, sizeof(struct User), 1, fp) == 1)
+        {
+            if (strcmp(receiver.phone, receiverPhone) == 0)
+            {
                 found = 1;
                 break;
             }
@@ -509,7 +627,8 @@ void sendMoney(struct User *sender) {
         fclose(fp);
     }
 
-    if (!found) {
+    if (!found)
+    {
         printf("Error: Receiver phone number not registered in PocketFlow!\n");
         return;
     }
@@ -517,28 +636,34 @@ void sendMoney(struct User *sender) {
     printf("Enter Amount to Send: ");
     scanf("%lf", &amount);
 
-    if (amount <= 0) {
+    if (amount <= 0)
+    {
         printf("Invalid Amount! Amount must be greater than 0.\n");
         return;
     }
 
-    if (amount > sender->balance) {
+    if (amount > sender->balance)
+    {
         printf("Insufficient Balance! You have %.2f Taka.\n", sender->balance);
         return;
     }
 
-    while (attempts > 0) {
+    while (attempts > 0)
+    {
         printf("Enter your PIN/Password to confirm: ");
         scanf("%49s", password);
 
-        if (strcmp(password, sender->password) == 0) {
+        if (strcmp(password, sender->password) == 0)
+        {
             srand(time(NULL));
             int generatedOTP = (rand() % 9000) + 1000;
 
             sender->balance -= amount;
-            if (updateUserInFile(sender)) {
+            if (updateUserInFile(sender))
+            {
                 FILE *cfp = fopen(CLAIMS_FILE, "ab");
-                if (cfp != NULL) {
+                if (cfp != NULL)
+                {
                     struct Claim newClaim;
                     strcpy(newClaim.senderPhone, sender->phone);
                     strcpy(newClaim.receiverPhone, receiverPhone);
@@ -559,13 +684,16 @@ void sendMoney(struct User *sender) {
                 printf("=========================================\n");
                 printf("Share this 4-digit OTP with the receiver to claim the money.\n");
                 printf("Current Balance: %.2f BDT\n", sender->balance);
-
-            } else {
+            }
+            else
+            {
                 sender->balance += amount; // Rollback
                 printf("Transaction Failed! System error.\n");
             }
             return;
-        } else {
+        }
+        else
+        {
             attempts--;
             if (attempts > 0)
                 printf("Wrong PIN! %d attempt(s) left.\n", attempts);
@@ -576,18 +704,23 @@ void sendMoney(struct User *sender) {
 }
 
 // Receiver's Notification Count
-int getPendingNotificationCount(char *userPhone) {
+int getPendingNotificationCount(char *userPhone)
+{
     FILE *cfp = fopen(CLAIMS_FILE, "rb");
-    if (cfp == NULL) return 0;
+    if (cfp == NULL)
+        return 0;
 
     struct Claim claim;
     int count = 0;
 
-    while (fread(&claim, sizeof(struct Claim), 1, cfp) == 1) {
-        if (strcmp(claim.receiverPhone, userPhone) == 0 && claim.status == 0) {
+    while (fread(&claim, sizeof(struct Claim), 1, cfp) == 1)
+    {
+        if (strcmp(claim.receiverPhone, userPhone) == 0 && claim.status == 0)
+        {
             count++;
         }
-        if (strcmp(claim.senderPhone, userPhone) == 0 && claim.status == 2) {
+        if (strcmp(claim.senderPhone, userPhone) == 0 && claim.status == 2)
+        {
             count++;
         }
     }
@@ -597,13 +730,17 @@ int getPendingNotificationCount(char *userPhone) {
 }
 
 // Auto Refund for wrong OTP 3 times
-void refundToSender(char *senderPhone, double amount) {
+void refundToSender(char *senderPhone, double amount)
+{
     FILE *fp = fopen(FILENAME, "r+b");
-    if (fp == NULL) return;
+    if (fp == NULL)
+        return;
 
     struct User temp;
-    while (fread(&temp, sizeof(struct User), 1, fp) == 1) {
-        if (strcmp(temp.phone, senderPhone) == 0) {
+    while (fread(&temp, sizeof(struct User), 1, fp) == 1)
+    {
+        if (strcmp(temp.phone, senderPhone) == 0)
+        {
             temp.balance += amount;
             fseek(fp, -(long)sizeof(struct User), SEEK_CUR);
             fwrite(&temp, sizeof(struct User), 1, fp);
@@ -616,9 +753,11 @@ void refundToSender(char *senderPhone, double amount) {
 }
 
 // ---------------- NOTIFICATION & CLAIM SYSTEM ----------------
-void showNotifications(struct User *currentUser) {
+void showNotifications(struct User *currentUser)
+{
     FILE *cfp = fopen(CLAIMS_FILE, "r+b");
-    if (cfp == NULL) {
+    if (cfp == NULL)
+    {
         printf("\nNotifications: You have no new notifications.\n");
         return;
     }
@@ -631,10 +770,12 @@ void showNotifications(struct User *currentUser) {
 
     printf("\n================ NOTIFICATION CENTER ================\n");
 
-    while (fread(&claim, sizeof(struct Claim), 1, cfp) == 1) {
+    while (fread(&claim, sizeof(struct Claim), 1, cfp) == 1)
+    {
         recordPosition = ftell(cfp) - sizeof(struct Claim);
 
-        if (strcmp(claim.receiverPhone, currentUser->phone) == 0 && claim.status == 0) {
+        if (strcmp(claim.receiverPhone, currentUser->phone) == 0 && claim.status == 0)
+        {
             found = 1;
             printf("\nNEW TRANSFER RECEIVED!\n");
             printf("Sender  : %s\n", claim.senderPhone);
@@ -647,16 +788,20 @@ void showNotifications(struct User *currentUser) {
             int opt;
             scanf("%d", &opt);
 
-            if (opt == 1) {
+            if (opt == 1)
+            {
                 attempts = 3;
 
-                while (attempts > 0) {
+                while (attempts > 0)
+                {
                     printf("\nEnter 4-digit OTP code: ");
                     scanf("%d", &inputOTP);
 
-                    if (inputOTP == claim.otp) {
+                    if (inputOTP == claim.otp)
+                    {
                         currentUser->balance += claim.amount;
-                        if (updateUserInFile(currentUser)) {
+                        if (updateUserInFile(currentUser))
+                        {
                             claim.status = 1; // Mark as Claimed
                             fseek(cfp, recordPosition, SEEK_SET);
                             fwrite(&claim, sizeof(struct Claim), 1, cfp);
@@ -665,20 +810,27 @@ void showNotifications(struct User *currentUser) {
 
                             printf("\nSUCCESS! %.2f BDT added to your account.\n", claim.amount);
                             printf("Current Balance: %.2f BDT\n", currentUser->balance);
-                        } else {
+                        }
+                        else
+                        {
                             currentUser->balance -= claim.amount; // Rollback
                             printf("Error updating balance.\n");
                         }
                         break;
-                    } else {
+                    }
+                    else
+                    {
                         attempts--;
-                        if (attempts > 0) {
+                        if (attempts > 0)
+                        {
                             printf("Invalid OTP! Attempt(s) left: %d. Try again.\n", attempts);
-                        } else {
+                        }
+                        else
+                        {
                             printf("\nFailed! 3 Wrong Attempts. Transfer Unsuccessful.\n");
-                            
+
                             refundToSender(claim.senderPhone, claim.amount);
-                            
+
                             claim.status = 2; // Mark as Failed/Refunded
                             fseek(cfp, recordPosition, SEEK_SET);
                             fwrite(&claim, sizeof(struct Claim), 1, cfp);
@@ -691,7 +843,8 @@ void showNotifications(struct User *currentUser) {
             break;
         }
 
-        if (strcmp(claim.senderPhone, currentUser->phone) == 0 && claim.status == 2) {
+        if (strcmp(claim.senderPhone, currentUser->phone) == 0 && claim.status == 2)
+        {
             found = 1;
             printf("\nUNSUCCESSFUL TRANSFER ALERT!\n");
             printf("Your transfer of %.2f BDT to %s failed due to 3 wrong OTP attempts.\n", claim.amount, claim.receiverPhone);
@@ -705,7 +858,8 @@ void showNotifications(struct User *currentUser) {
         }
     }
 
-    if (!found) {
+    if (!found)
+    {
         printf("\nYou have no new notifications.\n");
     }
 
@@ -713,15 +867,17 @@ void showNotifications(struct User *currentUser) {
 }
 
 // ---------------- TRANSACTION HISTORY ----------------
-void showTransactionHistory(struct User *user) {
+void showTransactionHistory(struct User *user)
+{
     FILE *fp = fopen(TXN_FILE, "rb");
-    
+
     showOptionHeader();
     printf("                                 P O C K E T F L O W                                 \n");
     printf("                      T R A N S A C T I O N   H I S T O R Y                      \n");
     printf("====================================================================================\n");
 
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("\n                    No transaction records found yet.\n");
         printf("===================================================================================\n");
         return;
@@ -730,30 +886,36 @@ void showTransactionHistory(struct User *user) {
     struct Transaction txn;
     int count = 0;
 
-    printf(" %-17s | %-16s | %-18s | %-10s | %-10s \n", 
+    printf(" %-17s | %-16s | %-18s | %-10s | %-10s \n",
            "Date & Time", "Type", "Details / Target", "Amount", "Balance");
     printf("------------------------------------------------------------------------------------\n");
 
-    while (fread(&txn, sizeof(struct Transaction), 1, fp) == 1) {
-        if (strcmp(txn.userPhone, user->phone) == 0) {
+    while (fread(&txn, sizeof(struct Transaction), 1, fp) == 1)
+    {
+        if (strcmp(txn.userPhone, user->phone) == 0)
+        {
             count++;
-            
+
             // Format Amount (+ for Received/Add, - for Sent/Cashout/Recharge)
             char amtStr[20];
-            if (strcmp(txn.type, "Add Money") == 0 || 
-                strcmp(txn.type, "Received Money") == 0 || 
-                strcmp(txn.type, "Refund Received") == 0) {
+            if (strcmp(txn.type, "Add Money") == 0 ||
+                strcmp(txn.type, "Received Money") == 0 ||
+                strcmp(txn.type, "Refund Received") == 0)
+            {
                 snprintf(amtStr, sizeof(amtStr), "+%.2f", txn.amount);
-            } else {
+            }
+            else
+            {
                 snprintf(amtStr, sizeof(amtStr), "-%.2f", txn.amount);
             }
 
-            printf(" %-17s | %-16s | %-18s | %-10s | %-10.2f\n", 
+            printf(" %-17s | %-16s | %-18s | %-10s | %-10.2f\n",
                    txn.timestamp, txn.type, txn.details, amtStr, txn.postBalance);
         }
     }
 
-    if (count == 0) {
+    if (count == 0)
+    {
         printf("                    No transaction records found for your account.\n");
     }
 
@@ -764,10 +926,12 @@ void showTransactionHistory(struct User *user) {
 }
 
 // ---------------- DASHBOARD ----------------
-void dashboard(struct User *user) {
+void dashboard(struct User *user)
+{
     int choice;
 
-    while (1) {
+    while (1)
+    {
         showDashboardHeader(user->name, user->balance);
 
         int notifCount = getPendingNotificationCount(user->phone);
@@ -776,9 +940,12 @@ void dashboard(struct User *user) {
         printf("2. Cash Out\n");
         printf("3. Mobile Recharge\n");
         printf("4. Send Money (OTP Transfer)\n");
-        if (notifCount > 0) {
+        if (notifCount > 0)
+        {
             printf("5. Notification (%d) [NEW!]\n", notifCount);
-        } else {
+        }
+        else
+        {
             printf("5. Notification (0)\n");
         }
         printf("6. Transaction History\n");
@@ -786,45 +953,52 @@ void dashboard(struct User *user) {
         printf("Choose an option: ");
         scanf("%d", &choice);
 
-        switch (choice) {
+        switch (choice)
+        {
         case 1:
             showOptionHeader();
             addMoney(user);
             printf("\nPress Enter to return to dashboard...");
-            getchar(); getchar();
+            getchar();
+            getchar();
             break;
 
         case 2:
             showOptionHeader();
             cashOut(user);
             printf("\nPress Enter to return to dashboard...");
-            getchar(); getchar();
+            getchar();
+            getchar();
             break;
 
         case 3:
             mblRecharge(user);
             printf("\nPress Enter to return to dashboard...");
-            getchar(); getchar();
+            getchar();
+            getchar();
             break;
 
         case 4:
             showOptionHeader();
             sendMoney(user);
             printf("\nPress Enter to return to dashboard...");
-            getchar(); getchar();
+            getchar();
+            getchar();
             break;
 
         case 5:
             showOptionHeader();
             showNotifications(user);
             printf("\nPress Enter to return to dashboard...");
-            getchar(); getchar();
+            getchar();
+            getchar();
             break;
 
         case 6:
             showTransactionHistory(user);
             printf("\nPress Enter to return to dashboard...");
-            getchar(); getchar();
+            getchar();
+            getchar();
             break;
 
         case 7:
@@ -837,11 +1011,13 @@ void dashboard(struct User *user) {
 }
 
 // ---------------- MAIN MENU ----------------
-int main() {
+int main()
+{
     int choice;
     struct User currentUser;
 
-    while (1) {
+    while (1)
+    {
         clearScreenAndShowBanner();
         printf("1. Sign Up\n");
         printf("2. Sign In\n");
@@ -850,12 +1026,14 @@ int main() {
         scanf("%d", &choice);
         clearInputBuffer();
 
-        switch (choice) {
+        switch (choice)
+        {
         case 1:
             signUp();
             break;
         case 2:
-            if (signIn(&currentUser) == 1) {
+            if (signIn(&currentUser) == 1)
+            {
                 dashboard(&currentUser);
             }
             break;
