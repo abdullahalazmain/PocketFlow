@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
-#include <time.h> 
+#include <time.h>
 #include <ctype.h>
 
 #define FILENAME "users.dat"
@@ -155,7 +155,7 @@ void signUp()
     printf("\n--- SIGN UP ---\n");
 
     int i = 0;
-    int name_check = 1; 
+    int name_check = 1;
 
     do
     {
@@ -164,13 +164,12 @@ void signUp()
         scanf(" %49[^\n]", newUser.name);
         clearInputBuffer();
 
-
         for (i = 0; newUser.name[i] != '\0'; i++)
         {
-            if (!isalpha(newUser.name[i] ) && !isspace(newUser.name[i]))
+            if (!isalpha(newUser.name[i]) && !isspace(newUser.name[i]))
             {
                 printf("Invalid name! Only Alphabet are allowed. Try again.\n");
-                name_check = 0 ; 
+                name_check = 0;
                 break;
             }
         }
@@ -327,11 +326,6 @@ void showDashboardHeader(char *fullName, double balance)
     printf(" User: %s                  Balance: %.2f BDT\n", fullName, balance);
     printf("---------------------------------------------------------------------\n");
 }
-// void showDashboardHeader(char *name, double balance) {
-//     clearScreenAndShowBanner();
-//     printf(" %s's Balance: %.2f BDT\n", name, balance);    <rakib>
-//     printf("---------------------------------------------------------------------\n");
-// }
 
 // ---------------- OPTION HEADER ----------------
 void showOptionHeader()
