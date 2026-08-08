@@ -69,13 +69,13 @@ void renderBanner() {
 
 void renderPageHeader(const char *title, const struct User *user) {
     renderBanner();
-    if (user != NULL) {
+    if (title != NULL && strcmp(title, "ACCOUNT DASHBOARD") == 0 && user != NULL) {
         printf("  Account: %-28s Balance: %10.2f BDT\n", user->name, user->balance);
         printf("  Phone  : %-28s\n", user->phone);
-        printf("  -------------------------------------------------------------------\n");
+        printf("  ---------------------------------------------------------------------\n");
     }
-    printf("  >>> %s <<<\n", title);
-    printf("  -------------------------------------------------------------------\n\n");
+    printf("  >>> %s <<<\n", title ? title : "");
+    printf("  ---------------------------------------------------------------------\n\n");
 }
 
 // ---------------- UTILITIES & VALIDATION ----------------
@@ -591,8 +591,8 @@ void showTransactionHistory(const struct User *user) {
 
     struct Transaction txn;
     int count = 0;
-    printf(" %-17s | %-16s | %-20s | %-10s | %-10s\n", "Date & Time", "Type", "Details / Target", "Amount", "Balance");
-    printf(" -----------------------------------------------------------------------------------\n");
+    printf(" %-17s | %-16s | %-20s | %-20s | %-20s\n", "Date & Time", "Type", "Details / Target", "Amount", "Balance");
+    printf(" ----------------------------------------------------------------------------------------------------------\n");
 
     while (fread(&txn, sizeof(struct Transaction), 1, fp) == 1) {
         if (strcmp(txn.userPhone, user->phone) == 0) {
@@ -603,12 +603,12 @@ void showTransactionHistory(const struct User *user) {
             } else {
                 snprintf(amtStr, sizeof(amtStr), "-%.2f", txn.amount);
             }
-            printf(" %-17s | %-16s | %-20s | %-10s | %-10.2f\n", txn.timestamp, txn.type, txn.details, amtStr, txn.postBalance);
+            printf(" %-17s | %-16s | %-20s | %-20s | %-20.2f\n", txn.timestamp, txn.type, txn.details, amtStr, txn.postBalance);
         }
     }
 
     if (count == 0) printf("                     No past transactions recorded for this user.\n");
-    printf(" -----------------------------------------------------------------------------------\n");
+    printf(" ----------------------------------------------------------------------------------------------------------\n");
     printf(" Total Recorded Transactions: %d\n", count);
 
     fclose(fp);
