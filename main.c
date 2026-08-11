@@ -11,6 +11,7 @@
 #define TXN_FILE "transactions.dat"
 
 #define CASH_OUT_RATE 0.015
+#define CLAIM_TIMEOUT_SECONDS 120
 
 // ---------------- DATA STRUCTURES ----------------
 
@@ -27,6 +28,7 @@ struct Claim {
     double amount;
     int otp;
     int status; // 0 = Pending, 1 = Claimed, 2 = Failed/Refunded, 3 = Archived
+    time_t createdAt;
 };
 
 struct Transaction {
@@ -186,13 +188,27 @@ void recordTransaction(const char *userPhone, const char *type, const char *deta
     fclose(fp);
 }
 
+// [REPLACE existing getPendingNotificationCount with this]
 int getPendingNotificationCount(const char *userPhone) {
-    FILE *cfp = fopen(CLAIMS_FILE, "rb");
+    FILE *cfp = fopen(CLAIMS_FILE, "r+b");
     if (!cfp) return 0;
 
     struct Claim claim;
     int count = 0;
+    time_t now = time(NULL);
+
     while (fread(&claim, sizeof(struct Claim), 1, cfp) == 1) {
+        long pos = ftell(cfp) - sizeof(struct Claim);
+
+        // ২ মিনিট পার হলে অটো-রিফান্ড চেক
+        if (claim.status == 0 && difftime(now, claim.createdAt) >= CLAIM_TIMEOUT_SECONDS) {
+            refundToSender(claim.senderPhone, claim.amount);
+            claim.status = 2;
+            fseek(cfp, pos, SEEK_SET);
+            fwrite(&claim, sizeof(struct Claim), 1, cfp);
+            fseek(cfp, pos + sizeof(struct Claim), SEEK_SET);
+        }
+
         if ((strcmp(claim.receiverPhone, userPhone) == 0 && claim.status == 0) ||
             (strcmp(claim.senderPhone, userPhone) == 0 && claim.status == 2)) {
             count++;
@@ -471,19 +487,27 @@ void sendMoney(struct User *sender) {
                 newClaim.amount = amount;
                 newClaim.otp = generatedOTP;
                 newClaim.status = 0;
+                newClaim.createdAt = time(NULL); // [NEW] ক্লেইমের সময় সংরক্ষণ
                 fwrite(&newClaim, sizeof(struct Claim), 1, cfp);
                 fclose(cfp);
             }
 
             recordTransaction(sender->phone, "Send Money", receiverPhone, amount, sender->balance);
 
+            // [FIXED] এলাইনমেন্ট ঠিক রেখে OTP বক্স প্রিন্ট
+            char line1[60], line2[60], line3[60];
+            snprintf(line1, sizeof(line1), "Receiver : %s", receiver.name);
+            snprintf(line2, sizeof(line2), "Amount   : %.2f BDT", amount);
+            snprintf(line3, sizeof(line3), "SECURITY CLAIM OTP: [ %d ]", generatedOTP);
+
             printf("\n  +===================================================+\n");
             printf("  | TRANSFER INITIATED: Pending Receiver Claim        |\n");
-            printf("  | Receiver : %-38s |\n", receiver.name);
-            printf("  | Amount   : %-10.2f BDT                            |\n", amount);
-            printf("  | SECURITY CLAIM OTP: [ %d ]                         |\n", generatedOTP);
+            printf("  | %-49s |\n", line1);
+            printf("  | %-49s |\n", line2);
+            printf("  | %-49s |\n", line3);
             printf("  +===================================================+\n");
-            printf("  Provide this 4-digit OTP to the receiver to claim the funds.\n");
+            printf("  Provide this 4-digit OTP to the receiver to claim funds.\n");
+            printf("  Note: Receiver has 2 minutes to claim before auto-refund.\n");
         } else {
             sender->balance += amount;
             printf("  [!] Transaction system error.\n");
@@ -494,6 +518,7 @@ void sendMoney(struct User *sender) {
 
 // ---------------- NOTIFICATIONS & CLAIMS ----------------
 
+// [REPLACE existing showNotifications with this]
 void showNotifications(struct User *currentUser) {
     FILE *cfp = fopen(CLAIMS_FILE, "r+b");
     renderPageHeader("NOTIFICATION CENTER", currentUser);
@@ -504,17 +529,97 @@ void showNotifications(struct User *currentUser) {
         return;
     }
 
+    struct Claim pendingList[50];
+    long recordPositions[50];
+    int count = 0;
+    time_t now = time(NULL);
     struct Claim claim;
-    int found = 0;
 
-    while (fread(&claim, sizeof(struct Claim), 1, cfp) == 1) {
-        long recordPosition = ftell(cfp) - sizeof(struct Claim);
+    // ১. ফাইল স্ক্যান করে টাইমআউট ফিল্টার করা এবং বৈধ নোটিফিকেশন ফিল্টার করা
+    while (fread(&claim, sizeof(struct Claim), 1, cfp) == 1 && count < 50) {
+        long recordPos = ftell(cfp) - sizeof(struct Claim);
 
-        if (strcmp(claim.receiverPhone, currentUser->phone) == 0 && claim.status == 0) {
-            found = 1;
+        // টাইমআউট চেক (২ মিনিট পার হয়েছে কি না)
+        if (claim.status == 0 && difftime(now, claim.createdAt) >= CLAIM_TIMEOUT_SECONDS) {
+            refundToSender(claim.senderPhone, claim.amount);
+            claim.status = 2;
+            fseek(cfp, recordPos, SEEK_SET);
+            fwrite(&claim, sizeof(struct Claim), 1, cfp);
+            fseek(cfp, recordPos + sizeof(struct Claim), SEEK_SET);
+        }
+
+        // রিসিভারের জন্য পেন্ডিং নোটিফিকেশন অথবা সেন্ডারের জন্য রিফান্ড নোটিফিকেশন
+        if ((strcmp(claim.receiverPhone, currentUser->phone) == 0 && claim.status == 0) ||
+            (strcmp(claim.senderPhone, currentUser->phone) == 0 && claim.status == 2)) {
+            pendingList[count] = claim;
+            recordPositions[count] = recordPos;
+            count++;
+        }
+    }
+
+    if (count == 0) {
+        printf("  No pending notifications at this time.\n");
+        fclose(cfp);
+        pauseScreen();
+        return;
+    }
+
+    // ২. তালিকা আকারে প্রদর্শন করা (Numbered List)
+    printf("  You have %d pending notification(s):\n\n", count);
+    for (int i = 0; i < count; i++) {
+        int secondsLeft = CLAIM_TIMEOUT_SECONDS - (int)difftime(now, pendingList[i].createdAt);
+        if (secondsLeft < 0) secondsLeft = 0;
+
+        if (pendingList[i].status == 0) {
+            printf("  [%d] INCOMING TRANSFER from %s | Amount: %.2f BDT (Time Left: %dm %ds)\n", 
+                    i + 1, pendingList[i].senderPhone, pendingList[i].amount, secondsLeft / 60, secondsLeft % 60);
+        } else if (pendingList[i].status == 2) {
+            printf("  [%d] FAILED TRANSFER REFUND | Amount: %.2f BDT from %s\n", 
+                    i + 1, pendingList[i].amount, pendingList[i].receiverPhone);
+        }
+    }
+
+    printf("\n  Select Notification Number to View (1-%d) or 0 to Back: ", count);
+    int choice;
+    if (scanf("%d", &choice) != 1 || choice < 1 || choice > count) {
+        clearBuffer();
+        fclose(cfp);
+        return;
+    }
+    clearBuffer();
+
+    int selectedIdx = choice - 1;
+    struct Claim selectedClaim = pendingList[selectedIdx];
+    long selectedPos = recordPositions[selectedIdx];
+
+    renderPageHeader("NOTIFICATION DETAILS", currentUser);
+
+    // ৩. রিফান্ড নোটিফিকেশন সিলেক্ট করলে
+    if (selectedClaim.status == 2) {
+        printf("  [!] FAILED TRANSFER REFUND ALERT\n");
+        printf("  Transfer of %.2f BDT to %s failed or expired.\n", selectedClaim.amount, selectedClaim.receiverPhone);
+        printf("  STATUS: Amount has been automatically refunded to your wallet.\n");
+        printf("  ---------------------------------------------------\n");
+
+        selectedClaim.status = 3; // Archive notification
+        fseek(cfp, selectedPos, SEEK_SET);
+        fwrite(&selectedClaim, sizeof(struct Claim), 1, cfp);
+    } 
+    // ৪. ইনকামিং মানি নোটিফিকেশন সিলেক্ট করলে
+    else if (selectedClaim.status == 0) {
+        int secondsLeft = CLAIM_TIMEOUT_SECONDS - (int)difftime(time(NULL), selectedClaim.createdAt);
+        
+        if (secondsLeft <= 0) {
+            printf("  [!] This claim offer has expired and funds were refunded to the sender.\n");
+            refundToSender(selectedClaim.senderPhone, selectedClaim.amount);
+            selectedClaim.status = 2;
+            fseek(cfp, selectedPos, SEEK_SET);
+            fwrite(&selectedClaim, sizeof(struct Claim), 1, cfp);
+        } else {
             printf("  [!] PENDING INCOMING TRANSFER DETECTED\n");
-            printf("  From Sender : %s\n", claim.senderPhone);
-            printf("  Amount      : %.2f BDT\n", claim.amount);
+            printf("  From Sender : %s\n", selectedClaim.senderPhone);
+            printf("  Amount      : %.2f BDT\n", selectedClaim.amount);
+            printf("  Time Remaining: %d second(s)\n", secondsLeft);
             printf("  ---------------------------------------------------\n");
             printf("  1. Claim Money (Enter Security OTP)\n");
             printf("  2. Skip for Later\n  Choice: ");
@@ -526,53 +631,48 @@ void showNotifications(struct User *currentUser) {
 
                 while (attempts > 0) {
                     printf("  Enter 4-Digit Security OTP: ");
-                    if (scanf("%d", &inputOTP) == 1 && inputOTP == claim.otp) {
+                    if (scanf("%d", &inputOTP) == 1 && inputOTP == selectedClaim.otp) {
                         clearBuffer();
-                        currentUser->balance += claim.amount;
-                        if (updateUserInFile(currentUser)) {
-                            claim.status = 1;
-                            fseek(cfp, recordPosition, SEEK_SET);
-                            fwrite(&claim, sizeof(struct Claim), 1, cfp);
-                            recordTransaction(currentUser->phone, "Received Money", claim.senderPhone, claim.amount, currentUser->balance);
-
-                            printf("\n  [+] CLAIM SUCCESSFUL! %.2f BDT added to your account.\n", claim.amount);
-                            printf("  [+] New Balance: %.2f BDT\n", currentUser->balance);
+                        
+                        // পুনরায় টাইমআউট চেক
+                        if (difftime(time(NULL), selectedClaim.createdAt) >= CLAIM_TIMEOUT_SECONDS) {
+                            printf("\n  [!] Time limit expired during entry. Transfer canceled & refunded.\n");
+                            refundToSender(selectedClaim.senderPhone, selectedClaim.amount);
+                            selectedClaim.status = 2;
                         } else {
-                            currentUser->balance -= claim.amount;
-                            printf("  [!] Failed to update account record.\n");
+                            currentUser->balance += selectedClaim.amount;
+                            if (updateUserInFile(currentUser)) {
+                                selectedClaim.status = 1;
+                                recordTransaction(currentUser->phone, "Received Money", selectedClaim.senderPhone, selectedClaim.amount, currentUser->balance);
+                                printf("\n  [+] CLAIM SUCCESSFUL! %.2f BDT added to your account.\n", selectedClaim.amount);
+                                printf("  [+] New Balance: %.2f BDT\n", currentUser->balance);
+                            } else {
+                                currentUser->balance -= selectedClaim.amount;
+                                printf("  [!] Failed to update account record.\n");
+                            }
                         }
+                        fseek(cfp, selectedPos, SEEK_SET);
+                        fwrite(&selectedClaim, sizeof(struct Claim), 1, cfp);
                         break;
                     }
                     clearBuffer();
                     attempts--;
-                    if (attempts > 0) printf("  [!] Incorrect OTP! %d attempt(s) remaining.\n", attempts);
-                    else {
+                    if (attempts > 0) {
+                        printf("  [!] Incorrect OTP! %d attempt(s) remaining.\n", attempts);
+                    } else {
                         printf("\n  [!] 3 Failed OTP attempts. Transfer failed & automatically refunded.\n");
-                        refundToSender(claim.senderPhone, claim.amount);
-                        claim.status = 2;
-                        fseek(cfp, recordPosition, SEEK_SET);
-                        fwrite(&claim, sizeof(struct Claim), 1, cfp);
+                        refundToSender(selectedClaim.senderPhone, selectedClaim.amount);
+                        selectedClaim.status = 2;
+                        fseek(cfp, selectedPos, SEEK_SET);
+                        fwrite(&selectedClaim, sizeof(struct Claim), 1, cfp);
                     }
                 }
-            } else clearBuffer();
-            break;
-        }
-
-        if (strcmp(claim.senderPhone, currentUser->phone) == 0 && claim.status == 2) {
-            found = 1;
-            printf("  [!] FAILED TRANSFER REFUND ALERT\n");
-            printf("  Transfer of %.2f BDT to %s failed (Invalid OTPs).\n", claim.amount, claim.receiverPhone);
-            printf("  STATUS: Amount has been automatically refunded to your wallet.\n");
-            printf("  ---------------------------------------------------\n");
-
-            claim.status = 3;
-            fseek(cfp, recordPosition, SEEK_SET);
-            fwrite(&claim, sizeof(struct Claim), 1, cfp);
-            break;
+            } else {
+                clearBuffer(); // স্কিপ করলে বা ২ চাপলে কোনো পরিবর্তন ছাড়াই ফিরে যাবে
+            }
         }
     }
 
-    if (!found) printf("  No pending notifications at this time.\n");
     fclose(cfp);
     pauseScreen();
 }
